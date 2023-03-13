@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Controllers;
+
+use CodeIgniter\Controller;
+use CodeIgniter\Database\Exceptions\DatabaseException;
+use CodeIgniter\Files\Exceptions\FileNotFoundException;
+
+require_once APPPATH . 'ThirdParty/Database/Backup.php';
+
+class Backup extends Controller
+{
+    public function index()
+    {
+        try {
+            // Get the database configuration settings from the "app/Config/Database.php" file
+            $db = \Config\Database::connect();
+    
+            // Get the name of the database you want to backup
+            $dbName = $db->getDatabase();
+    
+            // Set the filename for the backup file
+            $backupFileName = $dbName . '' . date('Y-m-d-H-i-s') . '.sql';
+    
+            // Set the temporary path for the backup file
+            $backupTempPath = WRITEPATH . $backupFileName;
+    
+            // Load the backup utility library
+            $backup = new \CodeIgniter\Database\Backup($db);
+    
+            // Generate the backup and save it to the specified temporary path
+            $backup->backup($backupTempPath);
+    
+            // Define the directory where the backup file will be saved
+            $backupDir = FCPATH . 'backups/';
+    
+            // Create the directory if it doesn't exist
+            if (!file_exists($backupDir)) {
+                mkdir($backupDir);
+            }
+    
+            // Define the final path for the backup file
+            $backupPath = $backupDir . $backupFileName;
+    
+            // Copy the backup file from the temporary path to the final path
+            if (copy($backupTempPath, $backupPath)) {
+                // Download the backup file to the user's computer
+                return $this->response->download($backupPath, null);
+    
+                // Return a success response
+                // return $this->response->setStatusCode(200)->setBody('Backup file created successfully');
+            // } else {
+                // Return an error response
+                // return $this->response->setStatusCode(500)->setBody('Failed to create backup file');
+            }
+
+         
+        } catch (DatabaseException | FileNotFoundException $e) {
+            // Handle exceptions
+            return $this->response->setStatusCode(500)->setBody($e->getMessage());
+        }
+    }
+    
+    
+}
